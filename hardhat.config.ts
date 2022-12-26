@@ -6,7 +6,7 @@ import { task } from "hardhat/config";
 require("solidity-coverage");
 dotenv.config();
 
-const { ETHERSCAN_API_KEY, MAIN_WALLET, AVALANCHE_FUJI_C_RPC_URL } = process.env;
+const { ETHERSCAN_API_KEY, MAIN_WALLET, GOERLI_TEST_RPC_URL, AVALANCHE_FUJI_C_RPC_URL } = process.env;
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
 task("accounts", "Prints the list of accounts", async (args, hre) => {
@@ -64,14 +64,15 @@ export default {
       allowUnlimitedContractSize: true,
       blockGasLimit: 0xafffff,
     },
-
-    // rinkeby: {
-    //   url: `https://eth-rinkeby.alchemyapi.io/v2/${alchemyApiKey}`,
-    //   accounts: { mnemonic },
-    // },
     testnet: {
       url: AVALANCHE_FUJI_C_RPC_URL,
       chainId: 43113,
+      // gasPrice: 20000000000,
+      accounts: [MAIN_WALLET],
+    },
+    goerli: {
+      url: GOERLI_TEST_RPC_URL,
+      chainId: 5,
       // gasPrice: 20000000000,
       accounts: [MAIN_WALLET],
     },
