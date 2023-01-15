@@ -58,7 +58,7 @@ beforeEach("Transaction", async () => {
     BigNumber(1).times(1e18).toString(10),
     wallet.address,
     getTime(10),
-    { value: BigNumber(1).times(1e18).toString(10), from: wallet.address })
+    { value: BigNumber(1).times(1e18).toString(10), from:  wallet.address })
   await Router.addLiquidityETH(
     SafeMoon.address,
     amount.times(0.8).toString(10),

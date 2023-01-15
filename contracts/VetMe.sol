@@ -2,8 +2,6 @@
 
 pragma solidity ^0.8.12; 
 
-import "hardhat/console.sol";
-
 interface IUniswapV2Router01 {
     function factory() external pure returns (address);
     function WETH() external pure returns (address);
@@ -671,7 +669,7 @@ abstract contract Ownable is Context {
         if (changeAdminDelay > 0 && pendingAdmin != address(0)) {
             require(
                 block.timestamp > changeAdminDelay,
-                "CoterieMarket: owner apply too early"
+                "Ownable: owner apply too early"
             );
             admin = pendingAdmin;
             changeAdminDelay = 0;
@@ -791,7 +789,6 @@ library SignatureHelper {
         bytes memory signature
     ) internal view returns (bool) {
         (address recovered, RecoverError error) = tryRecover(hash, signature);
-        // console.log("Address recovered: ",signer, recovered);
         if (error == RecoverError.NoError && recovered == signer) {
             return true;
         }
@@ -905,7 +902,8 @@ contract VetMeEscrow is Ownable{
     
     
     event Matched(bytes32 sellOrderId, bytes32 buyOrderId);
-    function matchOrder(Order calldata sellOrder, bytes calldata sellSig, Order calldata buyOrder, bytes calldata buySig)external {
+    function matchOrder(Order calldata sellOrder, bytes calldata sellSig,
+     Order calldata buyOrder, bytes calldata buySig)external {
         bytes32 sellHash = hashOrder(sellOrder);
         bytes32 buyHash = hashOrder(buyOrder);
         require(
@@ -914,10 +912,10 @@ contract VetMeEscrow is Ownable{
             "Invalid Order Sig(s)"
             );
         require(block.timestamp<= sellOrder.deadline && block.timestamp<=buyOrder.deadline, "Order(s) Expired");
-        // console.log(amountOutBuyerEst,buyOrder.amountOut, amountOutSellerEst, sellOrder.amountOut);
         require(sellOrder.amountIn == buyOrder.amountOut && buyOrder.amountIn == sellOrder.amountOut, "Invalid order value match");
         require(sellOrder.tokenOut == buyOrder.tokenIn && buyOrder.tokenOut == sellOrder.tokenIn, "Invalid order token match");
         require(!nonces[sellOrder.signatory][sellOrder.nonce] && !nonces[buyOrder.signatory][buyOrder.nonce], "used nonce(s)");
+        nonces[sellOrder.signatory][sellOrder.nonce] = nonces[buyOrder.signatory][buyOrder.nonce]=true;
         // withdraw from both wallets and sub platform fees (1.25%)
         uint256 amountSell; uint256 amountBuy;
         IERC20(sellOrder.tokenOut).safeTransferFrom(sellOrder.signatory, address(this), sellOrder.amountOut);
@@ -932,7 +930,6 @@ contract VetMeEscrow is Ownable{
             if(WETH != sellOrder.tokenOut){
                 path[0] = sellOrder.tokenOut;
                 path[1] = WETH;
-                console.log("Swapping", HelperLib.getFractionPercent(amountSell, 125));
                 IERC20(sellOrder.tokenOut).approve(address(ROUTER), HelperLib.getFractionPercent(amountSell, 125));
                 ROUTER.swapExactTokensForETHSupportingFeeOnTransferTokens(
                     HelperLib.getFractionPercent(amountSell, 125),
@@ -945,7 +942,6 @@ contract VetMeEscrow is Ownable{
             if(WETH != buyOrder.tokenOut){
                 path[0] = buyOrder.tokenOut;
                 path[1] = WETH;
-                console.log("Swapping", HelperLib.getFractionPercent(amountBuy, 125));
                 IERC20(buyOrder.tokenOut).approve(address(ROUTER), HelperLib.getFractionPercent(amountBuy, 125));
                 ROUTER.swapExactTokensForETHSupportingFeeOnTransferTokens(
                     HelperLib.getFractionPercent(amountBuy, 125),
