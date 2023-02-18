@@ -873,8 +873,10 @@ contract VetMeEscrow is Ownable{
     receive() payable external {}
 
     function getBalance (address token) external  view returns(uint256){
-        if(token == address(0))
-        return address(this).balance;
+        if(token == address(0)){
+            uint256 wethBalance = IERC20(WETH).balanceOf(address(this));
+            return address(this).balance + wethBalance;
+        }
         return IERC20(token).balanceOf(address(this));
     }
 
@@ -894,7 +896,7 @@ contract VetMeEscrow is Ownable{
         emit FeeChanged(msg.sender, fee);
     }
 
-    event Withdraw(address to, address token, uint256 amount, uint256 timestamp);
+    event Withdraw(address to, address token, uint256 amount);
     function withdrawFunds (address token) external {
         onlyOwner();
         uint256 amount =0;
@@ -913,7 +915,7 @@ contract VetMeEscrow is Ownable{
             if(amount>0)
                 IERC20(WETH).transfer(feeReceiver(), amount);
         }
-        emit Withdraw(feeReceiver(),token, amount, block.timestamp);
+        emit Withdraw(feeReceiver(),token, amount);
     }
 
     bytes32 private constant ORDER_STRUCT =
@@ -1080,7 +1082,6 @@ contract VetMeEscrow is Ownable{
         IERC20(buyOrder.tokenOut).transfer(feeReceiver(), HelperLib.getFractionPercent(transferBuy, nonlistedFeesValue));
         IERC20(sellOrder.tokenOut).transfer(buyOrder.receivingWallet, HelperLib.getFractionPercent(transferSell, MAX_FEES-nonlistedFeesValue)); 
         IERC20(buyOrder.tokenOut).transfer(sellOrder.receivingWallet, HelperLib.getFractionPercent(transferBuy, MAX_FEES-nonlistedFeesValue));
-        console.log("transferSell: ",transferSell, "transferBuy: ", transferBuy);
         emit Matched(keccak256(sellSig), transferSell, keccak256(buySig), transferBuy);
     }
 

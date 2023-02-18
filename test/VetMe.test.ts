@@ -2,7 +2,7 @@ import { beforeEach } from 'mocha';
 import chai, { expect } from "chai";
 import { ethers } from "hardhat";
 import BigNumber from "bignumber.js"
-import { Contract } from "ethers"
+import { Contract, constants } from "ethers"
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { solidity } from 'ethereum-waffle';
 import { keccak256 } from 'ethers/lib/utils';
@@ -116,6 +116,12 @@ async function makeEscrowParams(
   order.deadline,
   order.nonce */
 describe("Escrow", function () {
+  it("Set fees", async ()=>{
+    await expect(Escrow.connect(other0).setFees(100, 1)).to.revertedWith("Ownable: caller is not the owner")
+    await expect(Escrow.setFees(150, 1)).to.emit(Escrow, "FeeChanged").withArgs(wallet.address, 150)
+    expect(await Escrow.feeValue()).to.equal(150)
+  })
+
    it("Should support listed fraction sales ETH pair", async () => {
     const buy = await makeEscrowParams(
       wallet,
@@ -167,7 +173,9 @@ describe("Escrow", function () {
       await expect(Escrow.matchSupportFraction(sell2.order, sell2.signature, buy.order, buy.signature))
         .to.revertedWith("used nonce(s)")
 
-  }) 
+        await expect(Escrow.withdrawFunds(constants.AddressZero)).to.emit(Escrow, "Withdraw")
+     expect(await Escrow.getBalance(constants.AddressZero) ).to.equal(0)
+  })
    it("Should support listed fraction sales", async function () {
      const buy = await makeEscrowParams(
        wallet,
@@ -220,6 +228,10 @@ describe("Escrow", function () {
        )
      await expect(Escrow.matchSupportFraction(sell2.order, sell2.signature, buy.order, buy.signature))
        .to.revertedWith("used nonce(s)")
+
+     const tokenBalance = await Erc20.balanceOf(Escrow.address)
+     await expect(Escrow.withdrawFunds(Erc20.address)).to.emit(Escrow, "Withdraw").withArgs(wallet.address, Erc20.address, tokenBalance)
+     expect(await Escrow.getBalance(Erc20.address)).to.equal(0)
    });
 
 
