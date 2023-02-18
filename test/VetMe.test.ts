@@ -116,7 +116,7 @@ async function makeEscrowParams(
   order.deadline,
   order.nonce */
 describe("Escrow", function () {
-  /* it("Should support listed fraction sales ETH pair", async () => {
+   it("Should support listed fraction sales ETH pair", async () => {
     const buy = await makeEscrowParams(
       wallet,
       wallet, 
@@ -167,8 +167,8 @@ describe("Escrow", function () {
       await expect(Escrow.matchSupportFraction(sell2.order, sell2.signature, buy.order, buy.signature))
         .to.revertedWith("used nonce(s)")
 
-  }) */
-   /* it("Should support listed fraction sales", async function () {
+  }) 
+   it("Should support listed fraction sales", async function () {
      const buy = await makeEscrowParams(
        wallet,
        wallet,
@@ -220,7 +220,9 @@ describe("Escrow", function () {
        )
      await expect(Escrow.matchSupportFraction(sell2.order, sell2.signature, buy.order, buy.signature))
        .to.revertedWith("used nonce(s)")
-   }); */
+   });
+
+
   it("Should support unlisted tokens for Eth fraction sales", async function () {
     const buy = await makeEscrowParams(
       wallet,

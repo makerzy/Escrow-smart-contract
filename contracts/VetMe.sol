@@ -1019,7 +1019,7 @@ contract VetMeEscrow is Ownable{
                         HelperLib.getFractionPercent(transferSell, feeValue),
                         0,
                         path,  // empty path (single liquidity pool)
-                        address(this),
+                        feeReceiver(),
                         block.timestamp
                     );
                     }
@@ -1027,7 +1027,7 @@ contract VetMeEscrow is Ownable{
                         HelperLib.getFractionPercent(transferBuy, feeValue),
                         0,
                         path,  // empty path (single liquidity pool)
-                        address(this),
+                        feeReceiver(),
                         block.timestamp
                     );
                     }
@@ -1084,81 +1084,5 @@ contract VetMeEscrow is Ownable{
         emit Matched(keccak256(sellSig), transferSell, keccak256(buySig), transferBuy);
     }
 
-    // function matchOrder(
-    //         Order calldata sellOrder, 
-    //         bytes calldata sellSig,
-    //         Order calldata buyOrder, 
-    //         bytes calldata buySig
-    //     )external {
-    //     // bytes32 sellHash;
-    //     // bytes32 buyHash;
-    //     (bytes32 buyHash, bytes32 sellHash) = orderCheck(sellOrder, buyOrder);
-    //     require(
-    //         SignatureHelper.verify(sellOrder.signatory,DOMAIN_SEPARATOR, sellHash, sellSig) && 
-    //         SignatureHelper.verify(buyOrder.signatory,DOMAIN_SEPARATOR, buyHash, buySig), 
-    //         "Invalid Order Sig(s)"
-    //         );
-        
-    //     nonces[sellOrder.signatory][sellOrder.nonce] = nonces[buyOrder.signatory][buyOrder.nonce] = true;
-    //     // withdraw from both wallets and sub platform fees (1.25%)
-    //     uint256 amountSell; uint256 amountBuy;
-    //     IERC20(sellOrder.tokenOut).safeTransferFrom(sellOrder.signatory, address(this), sellOrder.amountOut);
-    //     amountSell = IERC20(sellOrder.tokenOut).balanceOf(address(this));
-    //     IERC20(buyOrder.tokenOut).safeTransferFrom(buyOrder.signatory, address(this), buyOrder.amountOut);
-    //     amountBuy = IERC20(buyOrder.tokenOut).balanceOf(address(this));
-    //     if(feeValue>0){
-    //         // swap each 1.25% for ETH (if not ETH) 
-    //         address[] memory path = new address[](2);
-    //         // address sellToken = sellOrder.tokenOut;
-    //         // address buyToken = buyOrder.tokenOut;
-    //         if(WETH != sellOrder.tokenOut){
-    //             path[0] = sellOrder.tokenOut;
-    //             path[1] = sellOrder.tokenOutSwapPair==WETH? WETH: sellOrder.tokenOutSwapPair;
-    //             IERC20(sellOrder.tokenOut).approve(address(ROUTER), HelperLib.getFractionPercent(amountSell, feeValue));
-    //             // Swap for eth if it is Eth paired else swap for token
-    //             // Use with feesOnTransfer method since there's no standard method to determine if a token has fees on transfer
-    //             if(sellOrder.tokenOutSwapPair==WETH)
-    //             ROUTER.swapExactTokensForETHSupportingFeeOnTransferTokens(
-    //                 HelperLib.getFractionPercent(amountSell, feeValue),
-    //                 0,
-    //                 path,  // empty path (single liquidity pool)
-    //                 address(this),
-    //                 block.timestamp
-    //             );
-    //             else ROUTER.swapExactTokensForTokensSupportingFeeOnTransferTokens(
-    //                     HelperLib.getFractionPercent(amountBuy, feeValue),
-    //                     0,
-    //                     path,  // empty path (single liquidity pool)
-    //                     address(this),
-    //                     block.timestamp
-    //                 );
-    //         }
-    //         if(WETH != buyOrder.tokenOut){
-    //             path[0] = buyOrder.tokenOut;
-    //             path[1] = buyOrder.tokenOutSwapPair==WETH? WETH: buyOrder.tokenOutSwapPair;
-    //             IERC20(buyOrder.tokenOut).approve(address(ROUTER), HelperLib.getFractionPercent(amountBuy, feeValue));
-    //             // Swap for eth if it is Eth paired else swap for token
-    //             if(buyOrder.tokenOutSwapPair==WETH)
-    //                 ROUTER.swapExactTokensForETHSupportingFeeOnTransferTokens(
-    //                     HelperLib.getFractionPercent(amountBuy, feeValue),
-    //                     0,
-    //                     path,  // empty path (single liquidity pool)
-    //                     address(this),
-    //                     block.timestamp
-    //                 );
-    //             else ROUTER.swapExactTokensForTokensSupportingFeeOnTransferTokens(
-    //                     HelperLib.getFractionPercent(amountBuy, feeValue),
-    //                     0,
-    //                     path,  // empty path (single liquidity pool)
-    //                     address(this),
-    //                     block.timestamp
-    //                 );
-    //         }
-    //     }
-    //     // transfer withdrawn amount - (1.25%) to corrs. wallets
-    //     IERC20(sellOrder.tokenOut).transfer(buyOrder.receivingWallet, HelperLib.getFractionPercent(amountSell, amountSell-feeValue)); 
-    //     IERC20(buyOrder.tokenOut).transfer(sellOrder.receivingWallet, HelperLib.getFractionPercent(amountBuy, amountBuy-feeValue));
-    //     emit Matched(sellOrder.orderId, buyOrder.orderId);
-    // }
     
 }
