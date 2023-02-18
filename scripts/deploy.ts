@@ -40,18 +40,21 @@ async function main() {
     Erc20 = await ethers.getContractAt("BEP20Ethereum", utils.getAddress(ErcTokens[i]))
     await sleep(3000)
 
-    await Router.addLiquidityETH(
-      Erc20.address,
-      BigNumber(90_000).times(1e18).toString(10),
-      BigNumber(90_000).times(1e18).toString(10),
-      amount,
-      wallet.address,
-      getTime(100_000),
-      { value: amount, from: wallet.address })
+    // await Router.addLiquidityETH(
+    //   Erc20.address,
+    //   BigNumber(90_000).times(1e18).toString(10),
+    //   BigNumber(90_000).times(1e18).toString(10),
+    //   amount,
+    //   wallet.address,
+    //   getTime(100_000),
+    //   { value: amount, from: wallet.address })
     const tokenBal = await Erc20.balanceOf(wallet.address)
     await sleep(3000)
     const balance = await wallet.getBalance()
-    console.log({ allowance: tokenBal.toString(), balance: balance.toString() })
+    console.log({
+      token_balance: BigNumber(tokenBal.toString()).dividedBy(1e18).toString(10),
+      balance: BigNumber(balance.toString()).dividedBy(1e18).toString(10)
+    })
   }
 }
 

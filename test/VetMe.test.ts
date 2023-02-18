@@ -6,7 +6,7 @@ import { Contract } from "ethers"
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { solidity } from 'ethereum-waffle';
 import { keccak256 } from 'ethers/lib/utils';
-let Router: Contract, SafeMoon: Contract, Escrow: Contract, Erc20: Contract,
+let Router: Contract, Escrow: Contract, Erc20: Contract, Token2: Contract,
   Factory: Contract, Weth: Contract
 
 chai.use(solidity);
@@ -26,46 +26,39 @@ beforeEach("Transaction", async () => {
   const _Router = await ethers.getContractFactory("UniswapV2Router02", wallet)
   const _Erc20 = await ethers.getContractFactory("BEP20Ethereum", wallet)
   const _Escrow = await ethers.getContractFactory("VetMeEscrow", wallet)
-  const _SafeMoon = await ethers.getContractFactory("SafeMoon", wallet)
   Factory = await _Factory.deploy(wallet.address)
   Weth = await _Weth.deploy()
   Router = await _Router.deploy(Factory.address, Weth.address)
   Erc20 = await _Erc20.deploy()
-  SafeMoon = await _SafeMoon.deploy(Router.address)
+  Token2 = await _Erc20.deploy()
   Escrow = await _Escrow.deploy(Weth.address, Router.address)
+
   await Promise.all([
     Factory.deployed(), Weth.deployed(), Router.deployed(),
-    Erc20.deployed(), SafeMoon.deployed(), Escrow.deployed()
+    Erc20.deployed(),Escrow.deployed(), Token2.deployed()
   ])
 
+  await Token2.approve(Router.address, amount.toString(10))
   await Erc20.approve(Router.address, amount.toString(10))
-  await SafeMoon.approve(Router.address, amount.toString(10))
   await Erc20.approve(Escrow.address, amount.toString(10))
-  await SafeMoon.approve(Escrow.address, amount.toString(10))
   await Weth.approve(Escrow.address, amount.toString(10))
-  /* addLiquidityETH(
-        address token,
-        uint amountTokenDesired,
-        uint amountTokenMin,
-        uint amountETHMin,
-        address to,
-        uint deadline 
-    ) */
+
+  await Escrow.addSupportedPairToken(Weth.address)
   await Router.addLiquidityETH(
     Erc20.address,
     amount.times(0.8).toString(10),
     amount.times(0.8).toString(10),
     BigNumber(1).times(1e18).toString(10),
     wallet.address,
-    getTime(10),
+    getTime(150),
     { value: BigNumber(1).times(1e18).toString(10), from:  wallet.address })
   await Router.addLiquidityETH(
-    SafeMoon.address,
+    Token2.address,
     amount.times(0.8).toString(10),
     amount.times(0.6).toString(10),
     BigNumber(1).times(1e18).toString(10),
     wallet.address,
-    getTime(10),
+    getTime(150),
     { value: BigNumber(1).times(1e18).toString(10), from: wallet.address })
 })
 
@@ -75,10 +68,12 @@ beforeEach("Transaction", async () => {
 async function makeEscrowParams(
   wallet: SignerWithAddress,
   rWallet: SignerWithAddress,
+  tokenOutSwapPair: string,
   tokenIn: string,
   tokenOut: string,
   amountOut: string,
   amountIn: string,
+  nonce: number
 ) {
   const domain = {
     name: "VetMe Escrow",
@@ -86,6 +81,7 @@ async function makeEscrowParams(
     chainId: 31337,
     verifyingContract: Escrow.address,
   }
+
   const types = {
     Order: [
       { name: "signatory", type: "address" },
@@ -106,70 +102,227 @@ async function makeEscrowParams(
     amountOut,
     amountIn,
     deadline: getTime(200),
-    nonce: 1
+    nonce
   }
   const signature = await wallet._signTypedData(domain, types, value)
-  return { order: { ...value, orderId: keccak256(signature) }, signature }
+  return { order: { ...value, tokenOutSwapPair }, signature }
 }
-
+/* order.signatory,
+  order.receivingWallet,
+  order.tokenIn,
+  order.tokenOut,
+  order.amountOut,
+  order.amountIn,
+  order.deadline,
+  order.nonce */
 describe("Escrow", function () {
-  it("Should transfer with default ERC20", async function () {
+  /* it("Should support listed fraction sales ETH pair", async () => {
     const buy = await makeEscrowParams(
       wallet,
-      wallet,
+      wallet, 
+      Weth.address,
       Erc20.address,
       Weth.address,
       BigNumber(1).times(1e18).toString(10),
       BigNumber(500).times(1e18).toString(10),
+      1
+    )
+    const sell = await makeEscrowParams(
+      other0,
+      other0, 
+      Weth.address,
+      Weth.address,
+      Erc20.address,
+      BigNumber(250).times(1e18).toString(10),
+      BigNumber(0.5).times(1e18).toString(10),
+      1
+    )
+    const sell2 = await makeEscrowParams(
+      other0,
+      other0, 
+      Weth.address,
+      Weth.address,
+      Erc20.address,
+      BigNumber(250).times(1e18).toString(10),
+      BigNumber(0.5).times(1e18).toString(10),
+      2
     )
     await Erc20.transfer(other0.address, amount.toString(10))
-    await Erc20.connect(other0).approve(Escrow.address, amount.toString(10))
+    await Erc20.connect(other0).approve(Escrow.address, BigNumber(10).multipliedBy(amount).toString(10))
     await Weth.deposit({ value: BigNumber(2).times(1e18).toString(10) })
-    const sell = await makeEscrowParams(
-      other0,
-      other0,
-      Weth.address,
-      Erc20.address,
-      BigNumber(500).times(1e18).toString(10),
-      BigNumber(1).times(1e18).toString(10),
-    )
-    const sellerTokenInBal = (await Weth.balanceOf(other0.address)).toString()
-    const buyerTokenInBal = (await Erc20.balanceOf(wallet.address)).toString()
-    await expect(Escrow.matchOrder(sell.order, sell.signature, buy.order, buy.signature)).to.emit(Escrow, "Matched").withArgs(sell.order.orderId, buy.order.orderId)
-    console.log({ balance: (await Escrow.getBalance()).toString() })
-    const sellerTokenInBalAfter = (await Weth.balanceOf(other0.address)).toString()
-    const buyerTokenInBalAfter = (await Erc20.balanceOf(wallet.address)).toString()
-    console.log({ sellerTokenInBal, buyerTokenInBal, sellerTokenInBalAfter, buyerTokenInBalAfter })
-    await expect(Escrow.withdrawFunds()).to.emit(Escrow, "Withdraw")
-  });
-  it("Should transfer with safemoon tokens", async function () {
+    await expect(Escrow.matchSupportFraction(sell.order, sell.signature, buy.order, buy.signature))
+      .to.emit(Escrow, "Matched").withArgs(
+          keccak256(sell.signature), 
+          BigNumber(250).times(1e18).toString(10), 
+          keccak256(buy.signature), 
+          BigNumber(0.5).times(1e18).toString(10)
+        )
+      await expect(Escrow.matchSupportFraction(sell2.order, sell2.signature, buy.order, buy.signature))
+      .to.emit(Escrow, "Matched").withArgs(
+          keccak256(sell2.signature), 
+          BigNumber(250).times(1e18).toString(10), 
+          keccak256(buy.signature), 
+          BigNumber(0.5).times(1e18).toString(10)
+        )
+      await expect(Escrow.matchSupportFraction(sell2.order, sell2.signature, buy.order, buy.signature))
+        .to.revertedWith("used nonce(s)")
+
+  }) */
+   /* it("Should support listed fraction sales", async function () {
+     const buy = await makeEscrowParams(
+       wallet,
+       wallet,
+       Weth.address,
+       Erc20.address,
+       Token2.address,
+       BigNumber(1).times(1e18).toString(10),
+       BigNumber(500).times(1e18).toString(10),
+       1
+     )
+     const sell = await makeEscrowParams(
+       other0,
+       other0,
+       Weth.address,
+       Token2.address,
+       Erc20.address,
+       BigNumber(250).times(1e18).toString(10),
+       BigNumber(0.5).times(1e18).toString(10),
+       1
+     )
+     const sell2 = await makeEscrowParams(
+       other0,
+       other0,
+       Weth.address,
+       Token2.address,
+       Erc20.address,
+       BigNumber(250).times(1e18).toString(10),
+       BigNumber(0.5).times(1e18).toString(10),
+       2
+     )
+
+     await Erc20.transfer(other0.address, amount.toString(10))
+     await Erc20.connect(other0).approve(Escrow.address, BigNumber(10).multipliedBy(amount).toString(10))
+     await Token2.approve(Escrow.address, BigNumber(10).multipliedBy(amount).toString(10))
+     
+     await expect(Escrow.matchSupportFraction(sell.order, sell.signature, buy.order, buy.signature))
+       .to.emit(Escrow, "Matched").withArgs(
+          keccak256(sell.signature), 
+          BigNumber(250).times(1e18).toString(10), 
+          keccak256(buy.signature), 
+          BigNumber(0.5).times(1e18).toString(10)
+        )
+     await expect(Escrow.matchSupportFraction(sell2.order, sell2.signature, buy.order, buy.signature))
+       .to.emit(Escrow, "Matched").withArgs(
+         keccak256(sell2.signature),
+         BigNumber(250).times(1e18).toString(10),
+         keccak256(buy.signature),
+         BigNumber(0.5).times(1e18).toString(10)
+       )
+     await expect(Escrow.matchSupportFraction(sell2.order, sell2.signature, buy.order, buy.signature))
+       .to.revertedWith("used nonce(s)")
+   }); */
+  it("Should support unlisted tokens for Eth fraction sales", async function () {
     const buy = await makeEscrowParams(
       wallet,
       wallet,
-      SafeMoon.address,
+      Weth.address,
+      Erc20.address,
       Weth.address,
       BigNumber(1).times(1e18).toString(10),
       BigNumber(500).times(1e18).toString(10),
+      1
     )
-    await SafeMoon.transfer(other0.address, amount.toString(10))
-    await SafeMoon.connect(other0).approve(Escrow.address, amount.toString(10))
-    await Weth.deposit({ value: BigNumber(2).times(1e18).toString(10) })
     const sell = await makeEscrowParams(
       other0,
       other0,
       Weth.address,
-      SafeMoon.address,
-      BigNumber(500).times(1e18).toString(10),
-      BigNumber(1).times(1e18).toString(10),
+      Weth.address,
+      Erc20.address,
+      BigNumber(250).times(1e18).toString(10),
+      BigNumber(0.5).times(1e18).toString(10),
+      1
     )
-    const sellerTokenInBal = (await Weth.balanceOf(other0.address)).toString()
-    const buyerTokenInBal = (await SafeMoon.balanceOf(wallet.address)).toString()
-    await expect(Escrow.matchOrder(sell.order, sell.signature, buy.order, buy.signature)).to.emit(Escrow, "Matched").withArgs(sell.order.orderId, buy.order.orderId)
-    console.log({ balance: (await Escrow.getBalance()).toString() })
-    const sellerTokenInBalAfter = (await Weth.balanceOf(other0.address)).toString()
-    const buyerTokenInBalAfter = (await SafeMoon.balanceOf(wallet.address)).toString()
-    console.log({ sellerTokenInBal, buyerTokenInBal, sellerTokenInBalAfter, buyerTokenInBalAfter })
-    await expect(Escrow.withdrawFunds()).to.emit(Escrow, "Withdraw")
+    const sell2 = await makeEscrowParams(
+      other0,
+      other0,
+      Weth.address,
+      Weth.address,
+      Erc20.address,
+      BigNumber(250).times(1e18).toString(10),
+      BigNumber(0.5).times(1e18).toString(10),
+      2
+    )
+    await Erc20.transfer(other0.address, amount.toString(10))
+    await Erc20.connect(other0).approve(Escrow.address, BigNumber(10).multipliedBy(amount).toString(10))
+    await Weth.deposit({ value: BigNumber(2).times(1e18).toString(10) })
+    await expect(Escrow.matchUnlisted(sell.order, sell.signature, buy.order, buy.signature))
+      .to.emit(Escrow, "Matched").withArgs(
+        keccak256(sell.signature),
+        BigNumber(250).times(1e18).toString(10),
+        keccak256(buy.signature),
+        BigNumber(0.5).times(1e18).toString(10)
+      )
+    await expect(Escrow.matchUnlisted(sell2.order, sell2.signature, buy.order, buy.signature))
+      .to.emit(Escrow, "Matched").withArgs(
+        keccak256(sell2.signature),
+        BigNumber(250).times(1e18).toString(10),
+        keccak256(buy.signature),
+        BigNumber(0.5).times(1e18).toString(10)
+      )
+    await expect(Escrow.matchUnlisted(sell2.order, sell2.signature, buy.order, buy.signature))
+      .to.revertedWith("used nonce(s)")
+  });
+  it("Should support nonlisted tokens for tokens fraction sales", async function () {
+    const buy = await makeEscrowParams(
+      wallet,
+      wallet,
+      Weth.address,
+      Erc20.address,
+      Token2.address,
+      BigNumber(1).times(1e18).toString(10),
+      BigNumber(500).times(1e18).toString(10),
+      1
+    )
+    const sell = await makeEscrowParams(
+      other0,
+      other0,
+      Weth.address,
+      Token2.address,
+      Erc20.address,
+      BigNumber(250).times(1e18).toString(10),
+      BigNumber(0.5).times(1e18).toString(10),
+      1
+    )
+    const sell2 = await makeEscrowParams(
+      other0,
+      other0,
+      Weth.address,
+      Token2.address,
+      Erc20.address,
+      BigNumber(250).times(1e18).toString(10),
+      BigNumber(0.5).times(1e18).toString(10),
+      2
+    )
+    await Erc20.transfer(other0.address, amount.toString(10))
+    await Erc20.connect(other0).approve(Escrow.address, BigNumber(10).multipliedBy(amount).toString(10))
+    await Token2.approve(Escrow.address, BigNumber(10).multipliedBy(amount).toString(10))
+
+    await expect(Escrow.matchUnlisted(sell.order, sell.signature, buy.order, buy.signature))
+      .to.emit(Escrow, "Matched").withArgs(
+        keccak256(sell.signature),
+        BigNumber(250).times(1e18).toString(10),
+        keccak256(buy.signature),
+        BigNumber(0.5).times(1e18).toString(10)
+      )
+    await expect(Escrow.matchUnlisted(sell2.order, sell2.signature, buy.order, buy.signature))
+      .to.emit(Escrow, "Matched").withArgs(
+        keccak256(sell2.signature),
+        BigNumber(250).times(1e18).toString(10),
+        keccak256(buy.signature),
+        BigNumber(0.5).times(1e18).toString(10)
+      )
+    await expect(Escrow.matchUnlisted(sell2.order, sell2.signature, buy.order, buy.signature))
+      .to.revertedWith("used nonce(s)")
   });
 
 });
