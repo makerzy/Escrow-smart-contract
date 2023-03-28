@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT 
 
 pragma solidity ^0.8.12; 
-import "hardhat/console.sol";
+
 
 interface IUniswapV2Router01 {
     function factory() external pure returns (address);
@@ -826,7 +826,7 @@ contract VetMeEscrow is Ownable{
 
     mapping(address => mapping(uint256=> bool)) nonces;
     address public immutable WETH;
-    IUniswapV2Router02 public immutable ROUTER;
+    // IUniswapV2Router02 public immutable ROUTER;
     mapping(address => bool) public isSupportedPairToken;
     mapping(bytes32 => uint256) public totalMatchedOut;
     mapping(bytes32 => uint256) public totalMatchedIn;
@@ -856,8 +856,8 @@ contract VetMeEscrow is Ownable{
     uint256 public constant MAX_FEES = 10000;
     
 
-    constructor(address weth, IUniswapV2Router02 router){
-        ROUTER = router;
+    constructor(address weth/* , IUniswapV2Router02 router */){
+        // ROUTER = router;
         WETH = address(weth);
         DOMAIN_SEPARATOR = keccak256(
                 abi.encode(
@@ -1008,12 +1008,12 @@ contract VetMeEscrow is Ownable{
         totalMatchedIn[sellHash]+=transferBuy;
         IERC20(sellOrder.tokenOut).safeTransferFrom(sellOrder.signatory, address(this), transferSell);
         IERC20(buyOrder.tokenOut).safeTransferFrom(buyOrder.signatory, address(this), transferBuy);
-        if(feeValue > 0){
+      /*   if(feeValue > 0){
             address[] memory path = new address[](2);
             if(WETH != sellOrder.tokenOut){
                 path[0] = sellOrder.tokenOut;
                 path[1] = sellOrder.tokenOutSwapPair == WETH ? WETH : sellOrder.tokenOutSwapPair;
-                IERC20(sellOrder.tokenOut).approve(address(ROUTER), HelperLib.getFractionPercent(transferSell, feeValue));
+                // IERC20(sellOrder.tokenOut).approve(address(ROUTER), HelperLib.getFractionPercent(transferSell, feeValue));
                 // Swap for eth if it is Eth paired else swap for token
                 // Use with feesOnTransfer method since there's no standard method to determine if a token has fees on transfer
                 if(sellOrder.tokenOutSwapPair == WETH)
@@ -1055,14 +1055,15 @@ contract VetMeEscrow is Ownable{
                         block.timestamp
                     );
             }
-        }
+        } */
+
+
         IERC20(sellOrder.tokenOut).transfer(buyOrder.receivingWallet, HelperLib.getFractionPercent(transferSell,MAX_FEES- feeValue)); 
         IERC20(buyOrder.tokenOut).transfer(sellOrder.receivingWallet, HelperLib.getFractionPercent(transferBuy,MAX_FEES- feeValue));
         emit Matched(keccak256(sellSig), transferSell, keccak256(buySig), transferBuy);
         
     }
-
-
+     
     function matchUnlisted(
         Order calldata sellOrder, 
         bytes calldata sellSig,
@@ -1084,6 +1085,4 @@ contract VetMeEscrow is Ownable{
         IERC20(buyOrder.tokenOut).transfer(sellOrder.receivingWallet, HelperLib.getFractionPercent(transferBuy, MAX_FEES-nonlistedFeesValue));
         emit Matched(keccak256(sellSig), transferSell, keccak256(buySig), transferBuy);
     }
-
-    
 }
