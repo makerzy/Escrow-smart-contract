@@ -1,12 +1,11 @@
-import "@nomiclabs/hardhat-waffle";
+import "@nomicfoundation/hardhat-toolbox";
+// import hre from "hardhat"
 import dotenv from "dotenv";
-import "hardhat-contract-sizer";
-import "hardhat-gas-reporter";
 import { task } from "hardhat/config";
-require("solidity-coverage");
+import { HttpNetworkHDAccountsConfig } from "hardhat/types";
 dotenv.config();
 
-const { ETHERSCAN_API_KEY, MAIN_WALLET, GOERLI_TEST_RPC_URL, AVALANCHE_FUJI_C_RPC_URL } = process.env;
+const { ETHERSCAN_API_KEY, MAIN_WALLET, ETH_RPC_URL, GOERLI_TEST_RPC_URL, AVALANCHE_FUJI_C_RPC_URL } = process.env;
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
 task("accounts", "Prints the list of accounts", async (args, hre) => {
@@ -22,12 +21,11 @@ task("accounts", "Prints the list of accounts", async (args, hre) => {
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
-export default {
+const config = {
   solidity: {
     compilers: [
       {
-        version: "0.8.12",
-        hardfork: "istanbul",
+        version: "0.8.19",
         settings: {
           optimizer: {
             enabled: true,
@@ -54,6 +52,9 @@ export default {
     gasPrice: 21,
     gasPriceApi: `https://api.etherscan.io/api?module=proxy&action=eth_gasPrice&apikey=${ETHERSCAN_API_KEY}`,
   },
+  etherscan: {
+    apiKey: ETHERSCAN_API_KEY,
+  },
   networks: {
     hardhat: {
       localhost: {
@@ -63,6 +64,11 @@ export default {
       throwOnCallFailures: true,
       allowUnlimitedContractSize: true,
       blockGasLimit: 0xafffff,
+    },
+    mainnet: {
+      url: ETH_RPC_URL,
+      chainId: 1,
+      accounts: [MAIN_WALLET],
     },
     testnet: {
       url: AVALANCHE_FUJI_C_RPC_URL,
@@ -86,3 +92,7 @@ export default {
   //   only: [],
   // },
 };
+
+
+export default config;
+
