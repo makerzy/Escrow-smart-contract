@@ -91,6 +91,7 @@ async function makeEscrowParams(
 describe("Escrow", function () {
   it("Set fees", async () => {
     await expect(Escrow.connect(other0).setFees(100)).to.revertedWith("Ownable: caller is not the owner")
+    await expect(Escrow.setFees(2600)).to.revertedWith("Fee value exceed max fees allowed")
     await expect(Escrow.setFees(150)).to.emit(Escrow, "FeeChanged").withArgs(wallet.address, 150)
     expect(await Escrow.feeValue()).to.equal(150)
   })
@@ -198,7 +199,7 @@ describe("Escrow", function () {
 
      const tokenBalance = await Erc20.balanceOf(Escrow.address)
      await expect(Escrow.withdrawFunds(Erc20.address)).to.emit(Escrow, "Withdraw").withArgs(wallet.address, Erc20.address, tokenBalance)
-    //  expect(await Escrow.getBalance(Erc20.address)).to.equal(0)
+    expect(await Escrow.getBalance(Erc20.address)).to.equal(0)
    });
 
   /* it("Should support unlisted tokens for Eth fraction sales", async function (done) {

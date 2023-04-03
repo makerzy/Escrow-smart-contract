@@ -706,8 +706,8 @@ contract VetMeEscrow is Ownable{
             "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
         );
 
-    uint256 public feeValue = 125;
-    
+    uint256 public feeValue = 125; // denominator is 10000 (125 = 1.25%)
+    uint256 constant public MAX_FEE = 2500; // denominator is 10000 (2500 = 25%)
 
     constructor(){
         // ROUTER = router;
@@ -735,6 +735,7 @@ contract VetMeEscrow is Ownable{
 
     function setFees(uint256 fee) external{
         onlyOwner();
+        require(fee <= MAX_FEE, "Fee value exceed max fees allowed");
         feeValue = fee;
         emit FeeChanged(msg.sender, fee);
     }
