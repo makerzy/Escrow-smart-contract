@@ -847,8 +847,8 @@ contract VetMeEscrow is Ownable{
         transferSell = handleTransferFrom(sellOrder.tokenOut, sellOrder.signatory, transferSell);
         transferBuy = handleTransferFrom(buyOrder.tokenOut, buyOrder.signatory, transferBuy);
 
-        IERC20(sellOrder.tokenOut).transfer(buyOrder.receivingWallet, HelperLib.getFractionPercent(transferSell,feeValue)); 
-        IERC20(buyOrder.tokenOut).transfer(sellOrder.receivingWallet, HelperLib.getFractionPercent(transferBuy,feeValue));
+        IERC20(sellOrder.tokenOut).transfer(buyOrder.receivingWallet, transferSell- HelperLib.getFractionPercent(transferSell,feeValue)); 
+        IERC20(buyOrder.tokenOut).transfer(sellOrder.receivingWallet, transferBuy - HelperLib.getFractionPercent(transferBuy,feeValue));
         emit Matched(keccak256(sellSig), transferSell, keccak256(buySig), transferBuy);
         
     }
