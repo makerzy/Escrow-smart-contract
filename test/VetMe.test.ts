@@ -1,14 +1,12 @@
-// import { beforeEach } from 'mocha';
 import chai, { expect } from "chai";
 import { ethers } from "hardhat"
 import BigNumber from "bignumber.js"
 import { Contract, constants } from "ethers"
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { keccak256 } from 'ethers/lib/utils';
-// import { keccak256 } from 'ethers/lib/utils';
 
-let Router: Contract, Escrow: Contract, Erc20: Contract, Token2: Contract,
-  Factory: Contract, Weth: Contract
+let Escrow: Contract, Erc20: Contract, Token2: Contract,
+  Weth: Contract
 
 const getTime = (time: number) => Math.floor(new Date().getTime() / 1000.0) + time;
 

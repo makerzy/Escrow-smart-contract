@@ -1,7 +1,4 @@
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { Contract, utils } from "ethers";
 import { ethers } from "hardhat"
-import BigNumber from "bignumber.js"
 
 
 async function main() {
@@ -13,7 +10,6 @@ async function main() {
   await vetMe.deployed()
 
   console.log({ vetMeAddress: vetMe.address })
-
 }
 
 // We recommend this pattern to be able to use async/await everywhere
