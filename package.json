@@ -6,7 +6,9 @@
     "test": "npx hardhat test",
     "lint": "solhint --fix contracts/**/*.sol",
     "coverage": "npx hardhat coverage",
-    "typegen": "npx abi-types-generator hardhat"
+    "typegen": "npx abi-types-generator hardhat",
+    "deploy_mainnet": "npx hardhat run --network mainnet scripts/deploy.ts",
+    "deploy_testnet": "npx hardhat run --network testnet scripts/deploy.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
